@@ -18,6 +18,7 @@ if __name__ == '__main__':
 	parser.add_argument('--ckpt_path', type=str, default='./model.tar')
 	parser.add_argument('--batch_size', type=int, default=1)
 	parser.add_argument('--epoch_size', type=int, default=1)
+	parser.add_argument('--optim', type=str, default='SGD')
 	args = parser.parse_args()
 
 	if args.train:
@@ -40,7 +41,10 @@ if __name__ == '__main__':
 			print('GPU count: %d'%torch.cuda.device_count())
 			print('CUDA is ready')
 
-		OPTIMIZER = torch.optim.Adam(MODEL.parameters(), lr=1e-4)
+		if args.optim == 'Adam':
+			OPTIMIZER = torch.optim.Adam(MODEL.parameters(), lr=1e-4)
+		elif args.optim == 'SGD':
+			OPTIMIZER = torch.optim.SGD(MODEL.parameters(), lr=1e-2, momentum=0.9)
 		LOSS = nn.CrossEntropyLoss()
 
 		MODEL.train()
@@ -58,13 +62,17 @@ if __name__ == '__main__':
 				loss.backward()
 				OPTIMIZER.step()
 
+				num_corr = sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
+				acc = 100 * num_corr / args.batch_size
+
 				batch_processed = epoch_idx * args.epoch_size + batch_idx + 1
 				speed = (time.time() - start) / batch_processed
 				remain_time = (batch_total - batch_processed) * speed / 3600
-				print('Progress: %05d/%05d Loss: %f Remaining time: %.2f hrs'%(
+				print('Progress: %05d/%05d Loss: %f Accuracy: %.2f Remaining time: %.2f hrs'%(
 					batch_processed,
 					batch_total,
 					loss,
+					acc,
 					remain_time
 					))
 
