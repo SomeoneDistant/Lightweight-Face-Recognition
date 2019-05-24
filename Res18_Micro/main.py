@@ -32,6 +32,7 @@ if __name__ == '__main__':
 		print('Epoch size: %d'%args.epoch_size)
 
 		num_batches = len(DATALOADER)
+		batch_total = num_batches * args.epoch_size
 
 		MODEL = model.resnet18(num_classes=NUM_CLASSES)
 		if torch.cuda.device_count() > 1:
@@ -49,7 +50,6 @@ if __name__ == '__main__':
 
 		MODEL.train()
 		start = time.time()
-		batch_total = num_batches * args.epoch_size
 		for epoch_idx in range(args.epoch_size):
 			for batch_idx, (img, label) in enumerate(DATALOADER):
 
@@ -65,10 +65,10 @@ if __name__ == '__main__':
 				num_corr = sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
 				acc = 100 * num_corr / args.batch_size
 
-				batch_processed = epoch_idx * args.epoch_size + batch_idx + 1
-				speed = (time.time() - start) / batch_processed
-				remain_time = (batch_total - batch_processed) * speed / 3600
-				print('Progress: %05d/%05d Loss: %f Accuracy: %.2f Remaining time: %.2f hrs'%(
+				batch_processed = epoch_idx * num_batches + batch_idx + 1
+				speed = batch_processed / (time.time() - start)
+				remain_time = (batch_total - batch_processed) / speed / 3600
+				print('Progress: %d/%d Loss: %f Accuracy: %.2f Remaining time: %.2f hrs'%(
 					batch_processed,
 					batch_total,
 					loss,
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 					remain_time
 					))
 
-		torch.save(MODEL.state_dict(), args.ckpt_path)
+			torch.save(MODEL.state_dict(), args.ckpt_path)
 
 	# if args.inference:
 
