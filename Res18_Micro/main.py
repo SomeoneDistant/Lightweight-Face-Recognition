@@ -5,9 +5,12 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.utils.data as data
+from torch.autograd import Variable
 
 import model
 import dataset
+import lossfunction
+
 
 if __name__ == '__main__':
 
@@ -16,9 +19,11 @@ if __name__ == '__main__':
 	parser.add_argument('--inference', action='store_true')
 	parser.add_argument('--data_path', type=str, default='./micro')
 	parser.add_argument('--ckpt_path', type=str, default='./model.tar')
+	parser.add_argument('--model', type=str, default='ResNet18')
 	parser.add_argument('--batch_size', type=int, default=1)
 	parser.add_argument('--epoch_size', type=int, default=1)
 	parser.add_argument('--optim', type=str, default='SGD')
+	parser.add_argument('--loss_function', type=str, default='CrossEntropyLoss')
 	args = parser.parse_args()
 
 	if args.train:
@@ -34,30 +39,42 @@ if __name__ == '__main__':
 		num_batches = len(DATALOADER)
 		batch_total = num_batches * args.epoch_size
 
-		MODEL = model.resnet18(num_classes=NUM_CLASSES)
+		MODEL = model.ResNet18(num_classes=NUM_CLASSES)
+		ARCFACE = lossfunction.Arcface(512, NUM_CLASSES)
 		if torch.cuda.device_count() > 1:
 			MODEL = nn.DataParallel(MODEL)
+			ARCFACE = nn.DataParallel(ARCFACE)
 		if torch.cuda.is_available():
 			MODEL.cuda()
+			ARCFACE.cuda()
 			print('GPU count: %d'%torch.cuda.device_count())
 			print('CUDA is ready')
 
 		if args.optim == 'Adam':
-			OPTIMIZER = torch.optim.Adam(MODEL.parameters(), lr=1e-4)
+			OPTIMIZER = torch.optim.Adam(
+				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}], lr=1e-4
+				)
 		elif args.optim == 'SGD':
-			OPTIMIZER = torch.optim.SGD(MODEL.parameters(), lr=1e-2, momentum=0.9)
-		LOSS = nn.CrossEntropyLoss()
+			OPTIMIZER = torch.optim.SGD(
+				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}], lr=1e-2, momentum=0.9
+				)
+
+		if args.loss_function == 'CrossEntropyLoss':
+			LOSS = nn.CrossEntropyLoss()
+		elif args.loss_function == 'FocalLoss':
+			LOSS = lossfunction.FocalLoss(num_classes=NUM_CLASSES, alpha=0.25)
 
 		MODEL.train()
 		start = time.time()
 		for epoch_idx in range(args.epoch_size):
 			for batch_idx, (img, label) in enumerate(DATALOADER):
 
-				img = torch.autograd.Variable(img).cuda()
-				label = torch.autograd.Variable(label).cuda()
+				img = Variable(img).cuda()
+				label = Variable(label).cuda()
 
 				OPTIMIZER.zero_grad()
 				output = MODEL(img)
+				output = ARCFACE(output, label)
 				loss = LOSS(output, label)
 				loss.backward()
 				OPTIMIZER.step()
@@ -82,8 +99,10 @@ if __name__ == '__main__':
 
 	# 	DATASET = dataset.Micro(args.data_path)
 	# 	DATALOADER = data.dataloader(DATASET, batch_size=1, shuffle=False)
+	#	NUM_CLASSES = DATASET.num_classes
 
-	# 	MODEL = model.resnet18(num_classes=DATASET.num_classes)
+	#	if args.model == 'ResNet18':
+	#		MODEL = model.ResNet18(num_classes=NUM_CLASSES)
 	# 	MODEL.load_state_dict(torch.load(args.ckpt_path))
 	# 	if torch.cuda.is_available():
 	# 		MODEL.cuda()
