@@ -79,7 +79,7 @@ if __name__ == '__main__':
 				loss.backward()
 				OPTIMIZER.step()
 
-				num_corr = sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
+				num_corr = torch.sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
 				acc = 100 * num_corr / args.batch_size
 
 				batch_processed = epoch_idx * num_batches + batch_idx + 1
