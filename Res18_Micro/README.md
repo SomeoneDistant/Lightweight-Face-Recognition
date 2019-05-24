@@ -5,6 +5,7 @@
 ├── main.py
 ├── model.py
 ├── dataset.py
+├── lossfunction.py
 └── _micro
     ├── imglist_iccv.txt
     └── _images
