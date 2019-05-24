@@ -17,7 +17,7 @@ class FocalLoss(nn.Module):
 		else:
 			self.alpha = torch.tensor(alpha)
 		self.gamma = gamma
-		self.sm = nn.Softmax()
+		self.sm = nn.Softmax(dim=1)
 
 	def forward(self, inputs, labels):
 		prob = self.sm(inputs)
@@ -47,6 +47,7 @@ class Arcface(nn.Module):
 
 	def forward(self, inputs, labels):
 		cosine = Functional.linear(Functional.normalize(inputs), Functional.normalize(self.weight))
+		cosine.clamp(-1, 1)
 		sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 		phi = cosine * self.cosm - sine * self.sinm
 		if self.easy_margin:
@@ -59,6 +60,5 @@ class Arcface(nn.Module):
 		one_hot.scatter_(1, labels.view(-1, 1).data, 1)
 		output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
 		output *= self.s
-		print(output.shape)
 
 		return output
