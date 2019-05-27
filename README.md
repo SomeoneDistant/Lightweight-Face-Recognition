@@ -12,8 +12,13 @@ https://ibug.doc.ic.ac.uk/resources/lightweight-face-recognition-challenge-works
 ## Environment
 
 Python 3.7
+
 Pytorch 1.1
+
 CUDA 10.0
+
 opencv
+
 numpy
+
 pillow
