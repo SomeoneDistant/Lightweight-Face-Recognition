@@ -5,10 +5,10 @@ import torch
 import torch.utils.data as data
 
 
-class Micro(data.Dataset):
+class Testset(data.Dataset):
 
-    def __init__(self, file_dir='./micro'):
-        super(Micro, self).__init__()
+    def __init__(self, file_dir):
+        super(Testset, self).__init__()
 
         self.img_list = []
         self.label_list = []
