@@ -49,10 +49,12 @@ class Arcface(nn.Module):
 		cosine = Functional.linear(Functional.normalize(inputs), Functional.normalize(self.weight))
 		sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 		phi = cosine * self.cosm - sine * self.sinm
+
 		if self.easy_margin:
 			phi = torch.where(cosine>0, phi, cosine)
 		else:
 			phi = torch.where(cosine+self.cosm>0, phi, cosine-self.sinm*self.m)
+
 		one_hot = torch.zeros(cosine.size())
 		if inputs.is_cuda:
 			one_hot = one_hot.cuda()
