@@ -131,3 +131,16 @@ class RandomNoise(object):
 		noise = np.random.normal(0, 1, img.shape)
 		img += noise
 		return img
+
+class RandomRotate(object):
+	def __init__(self, low, high):
+		super(RandomRotate, self).__init__()
+		self.low = low
+		self.high = high
+
+	def __call__(self, img):
+		h, w = img.shape
+		center = [w/2, h/2]
+		angle = np.random.uniform(self.low, self.high)
+		rotator = cv2.getRotationMatrix2d(center, angle, 1)
+		img = cv2.warpAffine(img, rotator, [w, h])
