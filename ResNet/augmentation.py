@@ -122,6 +122,12 @@ class CenterCrop(object):
 		self.th, self.tw = crop_size
 
 	def __call__(self, img):
-		h, w = img.size
+		h, w = img.shape
 		img = img[(h-self.th)//2:(h+self.th)//2, (w-self.tw)//2:(w+self.tw)//2, :]
+		return img
+
+class RandomNoise(object):
+	def __call__(self, img):
+		noise = np.random.normal(0, 1, img.shape)
+		img += noise
 		return img
