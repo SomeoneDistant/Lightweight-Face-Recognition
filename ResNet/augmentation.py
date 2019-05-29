@@ -6,17 +6,30 @@ from PIL import Image
 import torch
 import torchvision.transforms.functional as functional
 
+
+class Sequential(object):
+	def __init(self, transforms):
+		self.transforms = transforms
+
+	def __call__(self, img):
+		for transform in self.transforms:
+			img = transform(img)
+		return img
+
+
 class HorizontalFlip(object):
 	def __call__(self, img):
 		if random.random() < 0.5:
 			img = np.copy(np.fliplr(img))
 		return img
 
+
 class VerticalFlip(object):
 	def __call__(self, img):
 		if random.random() < 0.5:
 			img = np.copy(np.flipud(img))
 		return img
+
 
 class ColorWarp(object):
 	def __init__(self, mean_range=0, std_range=0):
@@ -36,6 +49,7 @@ class ColorWarp(object):
 
 		return img
 
+
 class GaussianIllumination(object):
 	def __init__(self, mean, std):
 		super(GaussianIllumination, self).__init__()
@@ -47,6 +61,7 @@ class GaussianIllumination(object):
 			additive = np.random.normal(self.mean, self.std, 1)
 			img = np.clip(img + additive, 0, 1).astype(np.float32)
 		return img
+
 
 class ContrastAdjust(object):
 	def __init__(self, low, high):
@@ -62,6 +77,7 @@ class ContrastAdjust(object):
 		img = functional.adjust_contrast(img, contrast_factor)
 		return img
 
+
 class GammaAdjust(object):
 	def __init__(self, low, high):
 		super(GammaAdjust, self).__init__()
@@ -72,6 +88,7 @@ class GammaAdjust(object):
 		gamma = np.random.uniform(self.low, self.high)
 		img = functional.adjust_gamma(img, gamma)
 		return img
+
 
 class BrightnessAdjust(object):
 	def __init__(self, mean, std):
@@ -84,6 +101,7 @@ class BrightnessAdjust(object):
 		img = functional.adjust_brightness(img, 1+brightness)
 		return img
 
+
 class SaturationAdjust(object):
 	def __init__(self, low, high):
 		super(SaturationAdjust, self).__init__()
@@ -94,6 +112,7 @@ class SaturationAdjust(object):
 		saturation = np.random.uniform(self.low, self.high)
 		img = functional.adjust_saturation(img, saturation)
 		return img
+
 
 class HueAdjust(object):
 	def __init__(self, low, high):
@@ -106,6 +125,7 @@ class HueAdjust(object):
 		img = functional.adjust_hue(img, hue)
 		return img
 
+
 class RandomScale(object):
 	def __init__(self, low, high):
 		super(RandomScale, self).__init__()
@@ -115,6 +135,7 @@ class RandomScale(object):
 	def __call__(self, img):
 		scale_factor = np.random.uniform(self.low, self.high)
 		img = cv2.resize(img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
+
 
 class CenterCrop(object):
 	def __init__(self, crop_size):
@@ -126,11 +147,13 @@ class CenterCrop(object):
 		img = img[(h-self.th)//2:(h+self.th)//2, (w-self.tw)//2:(w+self.tw)//2, :]
 		return img
 
+
 class RandomNoise(object):
 	def __call__(self, img):
 		noise = np.random.normal(0, 1, img.shape)
 		img += noise
 		return img
+
 
 class RandomRotate(object):
 	def __init__(self, low, high):
@@ -144,3 +167,4 @@ class RandomRotate(object):
 		angle = np.random.uniform(self.low, self.high)
 		rotator = cv2.getRotationMatrix2d(center, angle, 1)
 		img = cv2.warpAffine(img, rotator, [w, h])
+
