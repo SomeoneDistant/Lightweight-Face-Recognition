@@ -2,10 +2,11 @@ import numpy as np
 import cv2
 
 import torch
-import torch.utils.data as data
+import torch.utils.data as Data
+# import augmentation as aug
 
 
-class Testset(data.Dataset):
+class Testset(Data.Dataset):
 
     def __init__(self, file_dir):
         super(Testset, self).__init__()
@@ -21,12 +22,27 @@ class Testset(data.Dataset):
         self.size = len(self.label_list)
         self.num_classes = len(set(self.label_list))
 
+        # self.augmentation = aug.Sequential([
+        #     aug.HorizontalFlip(),
+        #     aug.ColorWarp(),
+        #     aug.GaussionIllumination(),
+        #     aug.ContrastAdjust()
+        #     aug.GammaAdjust(),
+        #     aug.BrightnessAdjust(),
+        #     aug.SaturationAdjust(),
+        #     aug.HueAdjust(),
+        #     aug.RandomScale(),
+        #     aug.CenterCrop(),
+        #     aug.RandomNoise(),
+        #     aug.RandomRotate()
+        #     ])
+
     def __getitem__(self, index):
 
         img = cv2.imread(self.img_list[index])
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img.astype(np.float32))
-
+        img = img / 255 - 0.5
         label = self.label_list[index]
         label = torch.tensor(label).long()
 
