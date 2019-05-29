@@ -5,7 +5,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as Functional
-import torch.utils.data as data
+import torch.utils.data as Data
 from torch.autograd import Variable
 
 import model
@@ -25,16 +25,17 @@ if __name__ == '__main__':
 	parser.add_argument('--epoch_size', type=int, default=1)
 	parser.add_argument('--optim', type=str, default='SGD')
 	parser.add_argument('--loss_function', type=str, default='CrossEntropyLoss')
+	parser.add_argument('--pseudo', action='store_true')
 	args = parser.parse_args()
 
 	if args.train:
 
 		DATASET = dataset.Testset(args.data_path)
-		DATALOADER = data.DataLoader(
+		DATALOADER = Data.DataLoader(
 			DATASET,
 			batch_size=args.batch_size,
 			shuffle=True,
-			num_workers=32
+			num_workers=20
 			)
 		NUM_CLASSES = DATASET.num_classes
 		print('Data path: ' + args.data_path)
@@ -46,13 +47,13 @@ if __name__ == '__main__':
 		batch_total = num_batches * args.epoch_size
 
 		if args.model == 'ResNet18':
-			MODEL = model.ResNet18(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet18(pseudo=args.pseudo)
 		elif args.model == 'ResNet34':
-			MODEL = model.ResNet34(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet34(pseudo=args.pseudo)
 		elif args.model == 'ResNet50':
-			MODEL = model.ResNet50(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet50(pseudo=args.pseudo)
 		elif args.model == 'ResNet101':
-			MODEL = model.ResNet101(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet101(pseudo=args.pseudo)
 
 		ARCFACE = lossfunction.Arcface(512, NUM_CLASSES)
 
@@ -67,21 +68,26 @@ if __name__ == '__main__':
 
 		if args.optim == 'Adam':
 			OPTIMIZER = torch.optim.Adam(
-				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}], lr=1e-4
+				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}],
+				lr=1e-4
 				)
-			SCHEDULER = torch.optim.lr_scheduler.StepLR(OPTIMIZER, step_size=10, gamma=0.5)
+			SCHEDULER = torch.optim.lr_scheduler.MultiStepLR(OPTIMIZER, milestones=[10], gamma=0.5)
 		elif args.optim == 'SGD':
 			OPTIMIZER = torch.optim.SGD(
-				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}], lr=1e-1, momentum=0.9
+				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}],
+				lr=0.1,
+				momentum=0.9,
+				weight_decay=5e-4
 				)
-			SCHEDULER = torch.optim.lr_scheduler.StepLR(OPTIMIZER, step_size=5, gamma=0.1)
+			SCHEDULER = torch.optim.lr_scheduler.MultiStepLR(OPTIMIZER, milestones=[5], gamma=0.1)
 
 		if args.loss_function == 'CrossEntropyLoss':
 			LOSS = nn.CrossEntropyLoss()
 		elif args.loss_function == 'FocalLoss':
-			LOSS = lossfunction.FocalLoss(num_classes=NUM_CLASSES, alpha=0.25)
+			LOSS = lossfunction.FocalLoss(alpha=0.25)
 
 		MODEL.train()
+		ARCFACE.train()
 		start = time.time()
 		for epoch_idx in range(args.epoch_size):
 			for batch_idx, (img, label) in enumerate(DATALOADER):
@@ -111,13 +117,13 @@ if __name__ == '__main__':
 					))
 
 			SCHEDULER.step()
+
 			torch.save(MODEL.state_dict(), args.ckpt_path+'model.tar')
 			torch.save(ARCFACE.state_dict(), args.ckpt_path+'header.tar')
 
-
 	if args.inference:
 		DATASET = dataset.Testset(args.data_path)
-		DATALOADER = data.DataLoader(
+		DATALOADER = Data.DataLoader(
 			DATASET,
 			batch_size=args.batch_size,
 			shuffle=False,
