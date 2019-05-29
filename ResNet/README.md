@@ -1,8 +1,6 @@
 # ResNet model with Arcface and Focal Loss
 
 ## Update log
-- [x] Focal loss
-- [x] Arcface
 - [x] Data augmentation
 - [x] Pseudo fully connection
 - [ ] Intermediate loss
