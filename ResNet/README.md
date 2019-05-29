@@ -10,6 +10,7 @@ python main.py \
 --optim SGD \
 --loss_function FocalLoss \
 --data_path ./lite
+--pseudo
 ```
 
 ## Example of testing
