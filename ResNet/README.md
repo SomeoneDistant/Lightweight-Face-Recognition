@@ -1,5 +1,9 @@
 # ResNet model with Arcface and Focal Loss
- -[]
+
+## Update log
+
+- [x] Data augmentation
+
 ## Example of training
 ```
 python main.py \
