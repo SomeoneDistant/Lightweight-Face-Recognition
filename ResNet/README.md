@@ -2,7 +2,17 @@
 
 ## Update log
 
+- [x] ResNet
+- [x] Focal loss
+- [x] Arcface
 - [x] Data augmentation
+- [x] Pseudo fully connection
+- [ ] Invermediate loss
+- [ ] Octave conlolution
+- [ ] Attention module
+- [ ] Distillation
+- [ ] Intrinsic part-based model
+- [ ] Kernel orthogonalization
 
 ## Example of training
 ```
