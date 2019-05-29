@@ -1,7 +1,6 @@
 # ResNet model with Arcface and Focal Loss
 
 ## Update log
-
 - [x] Focal loss
 - [x] Arcface
 - [x] Data augmentation
@@ -12,6 +11,30 @@
 - [ ] Distillation
 - [ ] Intrinsic part-based model
 - [ ] Kernel orthogonalization
+
+## Directory tree
+```
+.
+├── main.py
+├── model.py
+├── dataset.py
+├── lossfunction.py
+├── augmentation.py
+├── _micro
+|   ├── imglist_iccv.txt
+|   └── _images
+|       ├── _00000012
+|       |   ├── 00000741.jpg
+|       |   └── ...
+|       └── _...
+└── _lite
+    ├── imglist_iccv.txt
+    └── _images
+        ├── _00000003
+        |   ├── 00000065.jpg
+        |   └── ...
+        └── _...
+```
 
 ## Example of training
 ```
@@ -33,27 +56,5 @@ python main.py \
 --model ResNet101 \
 --batch_size 512 \
 --data_path ./lite
-```
-
-## Directory tree
-```
-.
-├── main.py
-├── model.py
-├── dataset.py
-├── lossfunction.py
-├── _micro
-|   ├── imglist_iccv.txt
-|   └── _images
-|       ├── _00000012
-|       |   ├── 00000741.jpg
-|       |   └── ...
-|       └── _...
-└── _lite
-    ├── imglist_iccv.txt
-    └── _images
-        ├── _00000003
-        |   ├── 00000065.jpg
-        |   └── ...
-        └── _...
+--pseudo
 ```
