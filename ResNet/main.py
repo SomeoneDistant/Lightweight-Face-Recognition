@@ -57,15 +57,6 @@ if __name__ == '__main__':
 
 		ARCFACE = lossfunction.Arcface(512, NUM_CLASSES)
 
-		if torch.cuda.device_count() > 1:
-			MODEL = nn.DataParallel(MODEL)
-			ARCFACE = nn.DataParallel(ARCFACE)
-		if torch.cuda.is_available():
-			MODEL.cuda()
-			ARCFACE.cuda()
-			print('GPU count: %d'%torch.cuda.device_count())
-			print('CUDA is ready')
-
 		if args.optim == 'Adam':
 			OPTIMIZER = torch.optim.Adam(
 				[{'params': MODEL.parameters()}, {'params': ARCFACE.parameters()}],
@@ -79,12 +70,24 @@ if __name__ == '__main__':
 				momentum=0.9,
 				weight_decay=5e-4
 				)
-			SCHEDULER = torch.optim.lr_scheduler.MultiStepLR(OPTIMIZER, milestones=[5], gamma=0.1)
+			SCHEDULER = torch.optim.lr_scheduler.MultiStepLR(OPTIMIZER, milestones=[5*args.batch_size], gamma=0.1)
+
+		if torch.cuda.device_count() > 1:
+			MODEL = nn.DataParallel(MODEL).cuda()
+			ARCFACE = nn.DataParallel(ARCFACE).cuda()
+		if not torch.cuda.is_available():
+			MODEL.cuda()
+			ARCFACE.cuda()
+			print('GPU count: %d'%torch.cuda.device_count())
+			print('CUDA is ready')
 
 		if args.loss_function == 'CrossEntropyLoss':
 			LOSS = nn.CrossEntropyLoss()
 		elif args.loss_function == 'FocalLoss':
-			LOSS = lossfunction.FocalLoss(alpha=0.25)
+			LOSS = lossfunction.FocalLoss()
+
+		warmup_epochs = args.epoch_size // 25
+		warmup_batches = batch_total // 25
 
 		MODEL.train()
 		ARCFACE.train()
@@ -92,34 +95,40 @@ if __name__ == '__main__':
 		for epoch_idx in range(args.epoch_size):
 			for batch_idx, (img, label) in enumerate(DATALOADER):
 
+				batch_processed = epoch_idx * num_batches + batch_idx + 1
+
+				if epoch_idx < warmup_epochs and batch_idx < warmup_batches:
+					for params in OPTIMIZER.param_groups:
+						params['lr'] = (epoch_idx * num_batches + batch_idx + 1) * 0.1 / warmup_batches
+				else:
+					SCHEDULER.step()
+
 				img = Variable(img).cuda()
 				label = Variable(label).cuda()
 
 				OPTIMIZER.zero_grad()
 				output = MODEL(img)
+
 				output = ARCFACE(output, label)
 				loss = LOSS(output, label)
 				loss.backward()
 				OPTIMIZER.step()
 
-				num_corr = torch.sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
+				num_corr = torch.sum(torch.eq(torch.argmax(output, dim=1), label).float()).cpu().numpy()
 				acc = 100 * num_corr / args.batch_size
 
-				batch_processed = epoch_idx * num_batches + batch_idx + 1
 				speed = batch_processed / (time.time() - start)
 				remain_time = (batch_total - batch_processed) / speed / 3600
 				print('Progress: %d/%d Loss: %f Accuracy: %.2f Remaining time: %.2f hrs'%(
-					batch_processed,
-					batch_total,
+					epoch_idx,
+					args.epoch_size,
 					loss,
 					acc,
 					remain_time
 					))
 
-			SCHEDULER.step()
-
-			torch.save(MODEL.state_dict(), args.ckpt_path+'model.tar')
-			torch.save(ARCFACE.state_dict(), args.ckpt_path+'header.tar')
+			torch.save(MODEL.state_dict(), args.ckpt_path+'model.pth.tar')
+			torch.save(ARCFACE.state_dict(), args.ckpt_path+'header.pth.tar')
 
 	if args.inference:
 		DATASET = dataset.Testset(args.data_path)
@@ -136,17 +145,14 @@ if __name__ == '__main__':
 		num_batches = len(DATALOADER)
 
 		if args.model == 'ResNet18':
-			MODEL = model.ResNet18(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet18(pseudo=args.pseudo)
 		elif args.model == 'ResNet34':
-			MODEL = model.ResNet34(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet34(pseudo=args.pseudo)
 		elif args.model == 'ResNet50':
-			MODEL = model.ResNet50(num_classes=NUM_CLASSES)
+			MODEL = model.ResNet50(pseudo=args.pseudo)
 		elif args.model == 'ResNet101':
-			MODEL = model.ResNet101(num_classes=NUM_CLASSES)
-		MODEL.load_state_dict(torch.load(args.ckpt_path+'model.tar'))
-
+			MODEL = model.ResNet101(pseudo=args.pseudo)
 		ARCFACE = lossfunction.Arcface(512, NUM_CLASSES)
-		ARCFACE.load_state_dict(torch.load(args.ckpt_path+'header.tar'))
 
 		if torch.cuda.device_count() > 1:
 			MODEL = nn.DataParallel(MODEL)
@@ -156,6 +162,8 @@ if __name__ == '__main__':
 			ARCFACE.cuda()
 			print('GPU count: %d'%torch.cuda.device_count())
 			print('CUDA is ready')
+		MODEL.load_state_dict(torch.load(args.ckpt_path+'model.pth.tar'))
+		ARCFACE.load_state_dict(torch.load(args.ckpt_path+'header.pth.tar'))
 
 		MODEL.eval()
 		start = time.time()
@@ -165,7 +173,7 @@ if __name__ == '__main__':
 			label = Variable(label).cuda()
 
 			output = MODEL(img)
-			output = Functional.linear(output, ARCFACE.weight)
+			output = Functional.linear(output, ARCFACE.module.weight)
 
 			num_corr = torch.sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
 			acc = 100 * num_corr / args.batch_size
