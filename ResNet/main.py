@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import argparse
+import cv2
 
 import torch
 import torch.nn as nn
@@ -70,12 +71,12 @@ if __name__ == '__main__':
 				momentum=0.9,
 				weight_decay=5e-4
 				)
-			SCHEDULER = torch.optim.lr_scheduler.MultiStepLR(OPTIMIZER, milestones=[5*args.batch_size], gamma=0.1)
+			SCHEDULER = torch.optim.lr_scheduler.MultiStepLR(OPTIMIZER, milestones=[5*args.batch_size, 30*args.batch_size], gamma=0.1)
 
 		if torch.cuda.device_count() > 1:
-			MODEL = nn.DataParallel(MODEL).cuda()
-			ARCFACE = nn.DataParallel(ARCFACE).cuda()
-		if not torch.cuda.is_available():
+			MODEL = nn.DataParallel(MODEL)
+			ARCFACE = nn.DataParallel(ARCFACE)
+		if torch.cuda.is_available():
 			MODEL.cuda()
 			ARCFACE.cuda()
 			print('GPU count: %d'%torch.cuda.device_count())
@@ -103,19 +104,22 @@ if __name__ == '__main__':
 				else:
 					SCHEDULER.step()
 
+				# cv2.imshow('img', img.numpy()[0,:,:,:].transpose(1,2,0))
+				# cv2.waitKey(delay=0)
+
 				img = Variable(img).cuda()
 				label = Variable(label).cuda()
 
 				OPTIMIZER.zero_grad()
-				output = MODEL(img)
-
-				output = ARCFACE(output, label)
+				feature = MODEL(img)
+				output, cosine = ARCFACE(feature, label)
 				loss = LOSS(output, label)
 				loss.backward()
 				OPTIMIZER.step()
 
-				num_corr = torch.sum(torch.eq(torch.argmax(output, dim=1), label).float()).cpu().numpy()
-				acc = 100 * num_corr / args.batch_size
+				predict = torch.argmax(cosine, dim=1)
+				num_corr = torch.sum(torch.eq(predict, label).float()).cpu().numpy()
+				acc = 100 * num_corr / label.shape[0]
 
 				speed = batch_processed / (time.time() - start)
 				remain_time = (batch_total - batch_processed) / speed / 3600
@@ -166,17 +170,21 @@ if __name__ == '__main__':
 		ARCFACE.load_state_dict(torch.load(args.ckpt_path+'header.pth.tar'))
 
 		MODEL.eval()
+		ARCFACE.eval()
 		start = time.time()
 		for batch_idx, (img, label) in enumerate(DATALOADER):
 
 			img = Variable(img).cuda()
 			label = Variable(label).cuda()
 
-			output = MODEL(img)
-			output = Functional.linear(output, ARCFACE.module.weight)
+			feature = MODEL(img)
+			if torch.cuda.device_count() > 1:
+				output = Functional.linear(Functional.normalize(feature), Functional.normalize(ARCFACE.module.weight))
+			else:
+				output = Functional.linear(Functional.normalize(feature), Functional.normalize(ARCFACE.weight))
 
 			num_corr = torch.sum(torch.eq(torch.argmax(output, dim=1), label)).cpu().numpy()
-			acc = 100 * num_corr / args.batch_size
+			acc = 100 * num_corr / label.shape[0]
 
 			batch_processed = batch_idx + 1
 			speed = batch_processed / (time.time() - start)
