@@ -42,7 +42,7 @@ class Testset(Data.Dataset):
         img = cv2.imread(self.img_list[index])
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img.astype(np.float32))
-        img = img / 255 - 0.5
+        img = img / 255
         label = self.label_list[index]
         label = torch.tensor(label).long()
 
