@@ -9,35 +9,31 @@ from torch.autograd import Variable
 
 class FocalLoss(nn.Module):
 
-	def __init__(self, alpha=0.25, gamma=2):
+	def __init__(self, alpha=1, gamma=2):
 		super(FocalLoss, self).__init__()
-		self.alpha = torch.tensor(alpha)
+		self.alpha = alpha
 		self.gamma = gamma
+		self.ce = nn.CrossEntropyLoss()
 
 	def forward(self, inputs, labels):
-		prob = Functional.softmax(inputs, dim=1)
-		one_hot = torch.zeros(inputs.size())
-		if inputs.is_cuda:
-			one_hot = one_hot.cuda()
-		one_hot.scatter_(1, labels.view(-1, 1).data, 1)
-		prob = (prob * one_hot).sum(1).view(-1, 1)
-		ce = (prob).log()
-
-		loss = -self.alpha * (torch.pow((1 - prob), self.gamma)) * ce
-		return loss.mean()
+		logp = self.ce(inputs, labels)
+		prob = torch.exp(-logp)
+		loss = (self.alpha * (torch.pow((1 - prob), self.gamma)) * logp).mean()
+		return loss
 
 class Arcface(nn.Module):
 
-	def __init__(self, in_features, num_classes, s=64.0, m=0.50):
+	def __init__(self, features, num_classes, s=64.0, m=0.50):
 		super(Arcface, self).__init__()
-		self.in_features = in_features
-		self.out_features = num_classes
+		self.features = features
+		self.classes = num_classes
+		self.weight = Parameter(torch.FloatTensor(num_classes, features))
+		nn.init.xavier_uniform_(self.weight)
+
 		self.s = s
 		self.m = m
-		self.cosm = math.cos(self.m)
-		self.sinm = math.sin(self.m)
-		self.weight = Parameter(torch.FloatTensor(self.out_features, self.in_features))
-		nn.init.xavier_uniform_(self.weight)
+		self.cosm = math.cos(m)
+		self.sinm = math.sin(m)
 
 	def forward(self, inputs, labels):
 		cosine = Functional.linear(Functional.normalize(inputs), Functional.normalize(self.weight))
@@ -51,4 +47,4 @@ class Arcface(nn.Module):
 		output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
 		output *= self.s
 
-		return output
+		return output, cosine
