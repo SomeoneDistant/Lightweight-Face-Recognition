@@ -14,6 +14,7 @@
 ## Directory tree
 ```
 .
+├── README.md
 ├── main.py
 ├── model.py
 ├── dataset.py
@@ -39,12 +40,12 @@
 ```
 python main.py \
 --train \
---model ResNet101 \
---batch_size 1024 \
---epoch_size 1000 \
+--batch_size 384 \
+--epoch_size 100 \
 --optim SGD \
 --loss_function FocalLoss \
---data_path ./lite
+--data_path ./lite \
+--model ResNet50 \
 --pseudo
 ```
 
@@ -52,8 +53,8 @@ python main.py \
 ```
 python main.py \
 --inference \
---model ResNet101 \
---batch_size 512 \
---data_path ./lite
+--model ResNet50 \
+--batch_size 384 \
+--data_path ./lite \
 --pseudo
 ```
