@@ -8,7 +8,7 @@ import torchvision.transforms.functional as functional
 
 
 class Sequential(object):
-	def __init(self, transforms):
+	def __init__(self, transforms):
 		self.transforms = transforms
 
 	def __call__(self, img):
@@ -45,7 +45,7 @@ class ColorWarp(object):
 
 			img *= (1 + std)
 			img += mean
-			img = img[:, :, order]
+			#img = img[:, :, order]
 
 		return img
 
@@ -92,13 +92,13 @@ class GammaAdjust(object):
 
 class BrightnessAdjust(object):
 	def __init__(self, mean, std):
-		super(BrightnessAdjust, self).__init__()\
+		super(BrightnessAdjust, self).__init__()
 		self.mean = mean
 		self.std = std
 
 	def __call__(self, img):
 		brightness = np.random.normal(self.mean, self.std)
-		img = functional.adjust_brightness(img, 1+brightness)
+		img = functional.adjust_brightness(img, brightness)
 		return img
 
 
@@ -135,6 +135,7 @@ class RandomScale(object):
 	def __call__(self, img):
 		scale_factor = np.random.uniform(self.low, self.high)
 		img = cv2.resize(img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
+		return img
 
 
 class CenterCrop(object):
@@ -143,14 +144,15 @@ class CenterCrop(object):
 		self.th, self.tw = crop_size
 
 	def __call__(self, img):
-		h, w = img.shape
-		img = img[(h-self.th)//2:(h+self.th)//2, (w-self.tw)//2:(w+self.tw)//2, :]
+		h, w,c= img.shape
+		img_C = img[(h-self.th)//2:(h+self.th)//2, (w-self.tw)//2:(w+self.tw)//2, :]
+		cv2.resize(img_C,(h,w))
 		return img
 
 
 class RandomNoise(object):
 	def __call__(self, img):
-		noise = np.random.normal(0, 1, img.shape)
+		noise = np.random.normal(0.01, 0.09, img.shape)
 		img += noise
 		return img
 
@@ -162,9 +164,10 @@ class RandomRotate(object):
 		self.high = high
 
 	def __call__(self, img):
-		h, w = img.shape
-		center = [w/2, h/2]
+		h, w, c = img.shape
+		center = (w/2, h/2)
 		angle = np.random.uniform(self.low, self.high)
-		rotator = cv2.getRotationMatrix2d(center, angle, 1)
-		img = cv2.warpAffine(img, rotator, [w, h])
 
+		rotator = cv2.getRotationMatrix2D(center, angle, 1)
+		img = cv2.warpAffine(img, rotator, (w, h))
+		return img
