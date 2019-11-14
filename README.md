@@ -1,6 +1,6 @@
 # Lightweight Face Recognition
 
-A light weight face recognition model based on ResNet, Arcface and focal loss.
+Light weight face recognition models based on Arcface and focal loss.
 
 ## Environment
 
@@ -15,3 +15,8 @@ opencv
 numpy
 
 pillow
+
+## To-do list
+- [x] ResNet18
+- [ ] MobileNet
+- [ ] EfficientNet
