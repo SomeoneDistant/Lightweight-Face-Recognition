@@ -18,7 +18,7 @@ pillow
 
 ## To-do list
 
-- [x] ResNet18
+- [x] ResNet
 
 - [ ] MobileNet
 
