@@ -1,6 +1,6 @@
 # ResNet model with Arcface and Focal Loss
 
-## Update log
+## To-do list
 - [x] Warm-up
 - [x] Data augmentation
 - [x] Pseudo fully connection
