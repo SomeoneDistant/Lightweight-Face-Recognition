@@ -1,6 +1,6 @@
 # Lightweight Face Recognition
 
-A light weight face recognition model based on ResNet18, Arcface and focal loss.
+A light weight face recognition model based on ResNet, Arcface and focal loss.
 
 ## Environment
 
