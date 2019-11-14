@@ -1,6 +1,6 @@
 # Lightweight Face Recognition
 
-Light weight face recognition models based on Arcface and focal loss.
+Light weight face recognition models including data augmentation, Arcface and focal loss.
 
 ## Environment
 
